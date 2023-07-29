@@ -4,14 +4,14 @@
 #include <future>
 
 
-void print_vect(std::vector<int>& vect);
+void print_vect(const std::vector<int>& vect);
 
 template<typename InIt, typename Fn>
-void my_for_each(InIt first, InIt last, Fn func);
+void parallel_for_each(InIt first, InIt last, Fn func);
 
 int main() {
 	setlocale(LC_ALL, "ru");
-	std::cout << "\tfor_each\n\n" << std::endl;
+	std::cout << "\tparallel_for_each\n\n" << std::endl;
 
 	int size = 20;
 	std::vector<int> vect;
@@ -19,13 +19,13 @@ int main() {
 		vect.push_back(i);
 	}
 
-	std::cout << "Вектор до 'my_for_each': ";
+	std::cout << "Вектор до 'parallel_for_each': ";
 	print_vect(vect);
 	std::cout << std::endl << std::endl;
 
-	my_for_each(vect.begin(), vect.end(), [](int& x) { x *= 2; });
+	parallel_for_each(vect.begin(), vect.end(), [](int& x) { x *= 2; });
 
-	std::cout << "Вектор после 'my_for_each': ";
+	std::cout << "Вектор после 'parallel_for_each': ";
 	print_vect(vect);
 	std::cout << std::endl << std::endl;
 
@@ -34,28 +34,24 @@ int main() {
 }
 
 template<typename InIt, typename Fn>
-void my_for_each(InIt first, InIt last, Fn func) {
+void parallel_for_each(InIt first, InIt last, Fn func) {
 	size_t size = std::distance(first, last);
-	if (!size) {
-		return;
-	}
 
-	if (size < 2) {
-		return func(*first);
+	if (size < 5) {
+		std::for_each(first, last, func);
 	}
 	else {
 		auto middle = first;
 		std::advance(middle, size / 2);
 
-		auto ft_first = std::async(my_for_each<InIt, Fn>, first, middle, func);
-		auto ft_second = std::async(my_for_each<InIt, Fn>, middle, last, func);
+		auto ft = std::async(parallel_for_each<InIt, Fn>, first, middle, func);
+		parallel_for_each(middle, last, func);
 
-		ft_first.get();
-		ft_second.get();
+		ft.get();
 	}
 }
 
-void print_vect(std::vector<int>& vect) {
+void print_vect(const std::vector<int>& vect) {
 	for (auto it = vect.cbegin(); it != vect.cend(); ++it) {
 		std::cout << *it << ' ';
 	}
